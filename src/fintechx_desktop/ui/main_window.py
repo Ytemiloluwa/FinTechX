@@ -10,6 +10,8 @@ from PyQt6.QtCore import pyqtSlot
 from .virtual_terminal_widget import VirtualTerminalWidget
 from .analytics_dashboard_widget import AnalyticsDashboardWidget
 from .fraud_detection_widget import FraudDetectionWidget
+from .bill_payment_widget import BillPaymentWidget
+
 # Import the native C++ module
 try:
     from fintechx_desktop.infrastructure import fintechx_native
@@ -141,6 +143,7 @@ class MainWindow(QMainWindow):
         self.virtual_terminal_view = VirtualTerminalWidget()
         self.analytics_dashboard_view = AnalyticsDashboardWidget()
         self.fraud_detection_view = FraudDetectionWidget()
+        self.bill_payment_view = BillPaymentWidget()
 
     def add_widgets_to_stack(self):
         self.central_widget.addWidget(self.login_view)
@@ -149,6 +152,7 @@ class MainWindow(QMainWindow):
         self.central_widget.addWidget(self.virtual_terminal_view)
         self.central_widget.addWidget(self.analytics_dashboard_view)
         self.central_widget.addWidget(self.fraud_detection_view)
+        self.central_widget.addWidget(self.bill_payment_view)
 
 
     def setup_menus(self):
@@ -163,6 +167,7 @@ class MainWindow(QMainWindow):
         vt_action = view_menu.addAction("&Virtual Terminal")
         analytics_action = view_menu.addAction("&Analytics Dashboard")
         fraud_action = view_menu.addAction("&Fraud Detection")
+        bill_payment_action =view_menu.addAction("&Bill Payment")
 
 
         login_action.triggered.connect(self.show_login_screen)
@@ -171,6 +176,7 @@ class MainWindow(QMainWindow):
         vt_action.triggered.connect(self.show_virtual_terminal)
         analytics_action.triggered.connect(self.show_analytics_dashboard)
         fraud_action.triggered.connect(self.show_fraud_detection)
+        bill_payment_action.triggered.connect(self.show_bill_payment)
 
 
     def show_login_screen(self):
@@ -198,6 +204,10 @@ class MainWindow(QMainWindow):
     def show_fraud_detection(self):
         self.central_widget.setCurrentWidget(self.fraud_detection_view)
         self.statusBar().showMessage("Fraud Detection Active")
+
+    def show_bill_payment(self):
+        self.central_widget.setCurrentWidget(self.bill_payment_view)
+        self.statusBar().showMessage("Bill Payment Management Active")
 
     def closeEvent(self, event):
         logging.info("Closing application...")
