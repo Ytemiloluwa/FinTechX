@@ -178,7 +178,7 @@ Temporary Items
 poetry.lock.backup
 
 # Local development directories
-fintechx_desktop/
+/fintechx_desktop/
 
 # Logs
 *.log

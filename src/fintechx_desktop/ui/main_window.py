@@ -9,7 +9,7 @@ from PyQt6.QtCore import pyqtSlot
 # Import other UI widgets
 from .virtual_terminal_widget import VirtualTerminalWidget
 from .analytics_dashboard_widget import AnalyticsDashboardWidget
-
+from .fraud_detection_widget import FraudDetectionWidget
 # Import the native C++ module
 try:
     from fintechx_desktop.infrastructure import fintechx_native
@@ -140,6 +140,7 @@ class MainWindow(QMainWindow):
         self.pan_tools_view = PanToolsWidget()
         self.virtual_terminal_view = VirtualTerminalWidget()
         self.analytics_dashboard_view = AnalyticsDashboardWidget()
+        self.fraud_detection_view = FraudDetectionWidget()
 
     def add_widgets_to_stack(self):
         self.central_widget.addWidget(self.login_view)
@@ -147,6 +148,8 @@ class MainWindow(QMainWindow):
         self.central_widget.addWidget(self.pan_tools_view)
         self.central_widget.addWidget(self.virtual_terminal_view)
         self.central_widget.addWidget(self.analytics_dashboard_view)
+        self.central_widget.addWidget(self.fraud_detection_view)
+
 
     def setup_menus(self):
         menu_bar = self.menuBar()
@@ -159,11 +162,16 @@ class MainWindow(QMainWindow):
         pan_tools_action = view_menu.addAction("PAN Tools")
         vt_action = view_menu.addAction("&Virtual Terminal")
         analytics_action = view_menu.addAction("&Analytics Dashboard")
+        fraud_action = view_menu.addAction("&Fraud Detection")
+
+
         login_action.triggered.connect(self.show_login_screen)
         dashboard_action.triggered.connect(self.show_dashboard)
         pan_tools_action.triggered.connect(self.show_pan_tools)
         vt_action.triggered.connect(self.show_virtual_terminal)
         analytics_action.triggered.connect(self.show_analytics_dashboard)
+        fraud_action.triggered.connect(self.show_fraud_detection)
+
 
     def show_login_screen(self):
         self.central_widget.setCurrentWidget(self.login_view)
@@ -186,6 +194,10 @@ class MainWindow(QMainWindow):
         self.analytics_dashboard_view.refresh_dashboard()
         self.central_widget.setCurrentWidget(self.analytics_dashboard_view)
         self.statusBar().showMessage("Analytics Dashboard Active")
+
+    def show_fraud_detection(self):
+        self.central_widget.setCurrentWidget(self.fraud_detection_view)
+        self.statusBar().showMessage("Fraud Detection Active")
 
     def closeEvent(self, event):
         logging.info("Closing application...")
