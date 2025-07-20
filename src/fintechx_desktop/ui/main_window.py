@@ -12,6 +12,7 @@ from .analytics_dashboard_widget import AnalyticsDashboardWidget
 from .fraud_detection_widget import FraudDetectionWidget
 from .bill_payment_widget import BillPaymentWidget
 from .transaction_history_widget import TransactionHistoryWidget
+from .card_management_widget import CardManagementWidget
 
 # Import the native C++ module
 try:
@@ -146,6 +147,7 @@ class MainWindow(QMainWindow):
         self.fraud_detection_view = FraudDetectionWidget()
         self.bill_payment_view = BillPaymentWidget()
         self.transaction_history_view = TransactionHistoryWidget()
+        self.card_management_view = CardManagementWidget()
 
     def add_widgets_to_stack(self):
         self.central_widget.addWidget(self.login_view)
@@ -156,6 +158,8 @@ class MainWindow(QMainWindow):
         self.central_widget.addWidget(self.fraud_detection_view)
         self.central_widget.addWidget(self.bill_payment_view)
         self.central_widget.addWidget(self.transaction_history_view)
+        self.central_widget.addWidget(self.card_management_view)
+
 
 
     def setup_menus(self):
@@ -172,6 +176,7 @@ class MainWindow(QMainWindow):
         fraud_action = view_menu.addAction("&Fraud Detection")
         bill_payment_action =view_menu.addAction("&Bill Payment")
         transaction_history_action = view_menu.addAction("&Transaction History")
+        card_management_action = view_menu.addAction("&Card Management")
 
 
         login_action.triggered.connect(self.show_login_screen)
@@ -182,6 +187,7 @@ class MainWindow(QMainWindow):
         fraud_action.triggered.connect(self.show_fraud_detection)
         bill_payment_action.triggered.connect(self.show_bill_payment)
         transaction_history_action.triggered.connect(self.show_transaction_history)
+        card_management_action.triggered.connect(self.show_card_management)
 
 
     def show_login_screen(self):
@@ -217,6 +223,10 @@ class MainWindow(QMainWindow):
     def show_transaction_history(self):
         self.central_widget.setCurrentWidget(self.transaction_history_view)
         self.statusBar().showMessage("Transaction History and Reporting Active")
+
+    def show_card_management(self):
+        self.central_widget.setCurrentWidget(self.card_management_view)
+        self.statusBar().showMessage("Card Management Active")
 
     def closeEvent(self, event):
         logging.info("Closing application...")
