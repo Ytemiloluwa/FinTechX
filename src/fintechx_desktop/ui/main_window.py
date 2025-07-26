@@ -2,17 +2,21 @@ import logging
 from PyQt6.QtWidgets import (
     QMainWindow, QLabel, QVBoxLayout, QWidget, QPushButton,
     QStackedWidget, QLineEdit, QFormLayout, QSpinBox, QTextEdit,
-    QGroupBox, QComboBox
+    QGroupBox, QComboBox, QMessageBox
 )
 from PyQt6.QtCore import pyqtSlot
 
-# Import other UI widgets
+# Import UI widgets
 from .virtual_terminal_widget import VirtualTerminalWidget
 from .analytics_dashboard_widget import AnalyticsDashboardWidget
-from .fraud_detection_widget import FraudDetectionWidget
 from .bill_payment_widget import BillPaymentWidget
 from .transaction_history_widget import TransactionHistoryWidget
 from .card_management_widget import CardManagementWidget
+from .user_management_widget import UserManagementWidget, LoginDialog
+
+
+# Import the app modules
+from ..app.auth import AuthManager, UserRole, Permission
 
 # Import the native C++ module
 try:
@@ -27,14 +31,6 @@ except ImportError:
 
 
 # Placeholder Widgets for other views
-class LoginWidget(QWidget):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        layout = QVBoxLayout(self)
-        layout.addWidget(QLabel("Login Screen Placeholder"))
-        self.setLayout(layout)
-
-
 class DashboardWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -45,7 +41,6 @@ class DashboardWidget(QWidget):
 
 # --- PAN Tools Widget ---
 class PanToolsWidget(QWidget):
-    # (Content from previous version - kept for brevity, assumed unchanged)
     def __init__(self, parent=None):
         super().__init__(parent)
         main_layout = QVBoxLayout(self)
@@ -91,13 +86,11 @@ class PanToolsWidget(QWidget):
             return
         try:
             is_valid = fintechx_native.luhn_check(pan_to_validate)
-            if is_valid:
-                self.validate_result_label.setText("Result: <font color='green'>Valid (Luhn Check Passed)</font>")
-            else:
-                self.validate_result_label.setText("Result: <font color='red'>Invalid (Luhn Check Failed)</font>")
+            self.validate_result_label.setText(
+                f"Result: <font color=\"{'green' if is_valid else 'red'}\">{'Valid (Luhn Check Passed)' if is_valid else 'Invalid (Luhn Check Failed)'}</font>")
         except Exception as e:
             logging.error(f"Error during PAN validation: {e}")
-            self.validate_result_label.setText("Result: <font color='red'>Error during validation.</font>")
+            self.validate_result_label.setText("Result: <font color=\"red\">Error during validation.</font>")
 
     @pyqtSlot()
     def generate_pans(self):
@@ -129,70 +122,180 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("FinTechX Desktop")
-        self.setGeometry(100, 100, 900, 700)
+        self.setGeometry(100, 100, 1000, 800)
+
+        # Initialize managers
+        self.auth_manager = AuthManager()
+
+        self.session_id = None
+        self.current_user = None
+
+        # Create default admin user if no users exist
+        if not self.auth_manager.get_all_users():
+            self.auth_manager.create_user(
+                username="admin",
+                email="admin@fintechx.com",
+                password="admin123",
+                role=UserRole.ADMIN,
+                first_name="System",
+                last_name="Administrator"
+            )
+            logging.info("Created default admin user")
+
+        # Set up UI
         self.central_widget = QStackedWidget()
         self.setCentralWidget(self.central_widget)
         self.create_widgets()
         self.add_widgets_to_stack()
         self.setup_menus()
-        self.show_login_screen()
+
+        # Show login dialog
+        self.show_login_dialog()
+
         self.statusBar().showMessage("Ready")
 
     def create_widgets(self):
-        self.login_view = LoginWidget()
         self.dashboard_view = DashboardWidget()
         self.pan_tools_view = PanToolsWidget()
         self.virtual_terminal_view = VirtualTerminalWidget()
         self.analytics_dashboard_view = AnalyticsDashboardWidget()
-        self.fraud_detection_view = FraudDetectionWidget()
         self.bill_payment_view = BillPaymentWidget()
         self.transaction_history_view = TransactionHistoryWidget()
         self.card_management_view = CardManagementWidget()
+        self.user_management_view = UserManagementWidget(self.auth_manager)
+
 
     def add_widgets_to_stack(self):
-        self.central_widget.addWidget(self.login_view)
         self.central_widget.addWidget(self.dashboard_view)
         self.central_widget.addWidget(self.pan_tools_view)
         self.central_widget.addWidget(self.virtual_terminal_view)
         self.central_widget.addWidget(self.analytics_dashboard_view)
-        self.central_widget.addWidget(self.fraud_detection_view)
         self.central_widget.addWidget(self.bill_payment_view)
         self.central_widget.addWidget(self.transaction_history_view)
         self.central_widget.addWidget(self.card_management_view)
-
+        self.central_widget.addWidget(self.user_management_view)
 
 
     def setup_menus(self):
         menu_bar = self.menuBar()
+
+        # File menu
         file_menu = menu_bar.addMenu("&File")
+
+        self.logout_action = file_menu.addAction("&Logout")
+        self.logout_action.triggered.connect(self.logout)
+
+        change_password_action = file_menu.addAction("Change &Password")
+        change_password_action.triggered.connect(self.show_change_password_dialog)
+
         exit_action = file_menu.addAction("E&xit")
         exit_action.triggered.connect(self.close)
+
+        # View menu
         view_menu = menu_bar.addMenu("&View")
-        login_action = view_menu.addAction("Login Screen")
+
         dashboard_action = view_menu.addAction("Dashboard")
-        pan_tools_action = view_menu.addAction("PAN Tools")
-        vt_action = view_menu.addAction("&Virtual Terminal")
-        analytics_action = view_menu.addAction("&Analytics Dashboard")
-        fraud_action = view_menu.addAction("&Fraud Detection")
-        bill_payment_action =view_menu.addAction("&Bill Payment")
-        transaction_history_action = view_menu.addAction("&Transaction History")
-        card_management_action = view_menu.addAction("&Card Management")
-
-
-        login_action.triggered.connect(self.show_login_screen)
         dashboard_action.triggered.connect(self.show_dashboard)
+
+        pan_tools_action = view_menu.addAction("PAN Tools")
         pan_tools_action.triggered.connect(self.show_pan_tools)
+
+        vt_action = view_menu.addAction("&Virtual Terminal")
         vt_action.triggered.connect(self.show_virtual_terminal)
+
+        analytics_action = view_menu.addAction("&Analytics Dashboard")
         analytics_action.triggered.connect(self.show_analytics_dashboard)
-        fraud_action.triggered.connect(self.show_fraud_detection)
+
+        bill_payment_action = view_menu.addAction("&Bill Payment")
         bill_payment_action.triggered.connect(self.show_bill_payment)
+
+        transaction_history_action = view_menu.addAction("&Transaction History")
         transaction_history_action.triggered.connect(self.show_transaction_history)
+
+        card_management_action = view_menu.addAction("&Card Management")
         card_management_action.triggered.connect(self.show_card_management)
 
+        # Admin menu
+        self.admin_menu = menu_bar.addMenu("&Admin")
+        self.admin_menu.setObjectName("Admin")
 
-    def show_login_screen(self):
-        self.central_widget.setCurrentWidget(self.login_view)
-        self.statusBar().showMessage("Please Login")
+        user_management_action = self.admin_menu.addAction("&User Management")
+        user_management_action.triggered.connect(self.show_user_management)
+
+        # merchant_management_action = self.admin_menu.addAction("&Merchant Management")
+        # merchant_management_action.triggered.connect(self.show_merchant_management)
+        #
+        # customer_management_action = self.admin_menu.addAction("&Customer Management")
+        # customer_management_action.triggered.connect(self.show_customer_management)
+
+        # Help menu
+        help_menu = menu_bar.addMenu("&Help")
+
+        about_action = help_menu.addAction("&About")
+        about_action.triggered.connect(self.show_about_dialog)
+
+    def show_login_dialog(self):
+        dialog = LoginDialog(self.auth_manager, self)
+        dialog.login_successful.connect(self.handle_successful_login)
+
+        result = dialog.exec()
+        if result != LoginDialog.DialogCode.Accepted:
+            self.close()
+            return
+
+    @pyqtSlot(str, str)
+    def handle_successful_login(self, session_id, username):
+        self.session_id = session_id
+        self.current_user = self.auth_manager.get_user_by_session(session_id)
+
+        if not self.current_user:
+            QMessageBox.critical(self, "Error", "Authentication error. Please try again.")
+            self.show_login_dialog()
+            return
+
+        self.statusBar().showMessage(f"Logged in as {username}")
+        self.update_ui_for_permissions()
+        self.show_dashboard()
+
+    def update_ui_for_permissions(self):
+        if not self.current_user:
+            return
+
+        # Show/hide admin menu based on permissions
+        has_admin_permission = (
+                self.current_user.has_permission(Permission.MANAGE_USERS) or
+                self.current_user.has_permission(Permission.MANAGE_MERCHANTS) or
+                self.current_user.has_permission(Permission.MANAGE_CUSTOMERS)
+        )
+        self.admin_menu.menuAction().setVisible(has_admin_permission)
+
+    @pyqtSlot()
+    def logout(self):
+        if self.session_id:
+            self.auth_manager.logout(self.session_id)
+            self.session_id = None
+            self.current_user = None
+
+        self.show_login_dialog()
+
+    @pyqtSlot()
+    def show_change_password_dialog(self):
+        if not self.current_user:
+            return
+
+        from .user_management_widget import ChangePasswordDialog
+        dialog = ChangePasswordDialog(self.auth_manager, self.current_user.id, self)
+
+        if dialog.exec() == ChangePasswordDialog.DialogCode.Accepted:
+            QMessageBox.information(self, "Success", "Password changed successfully.")
+
+    @pyqtSlot()
+    def show_about_dialog(self):
+        QMessageBox.about(
+            self,
+            "About FinTechX Desktop",
+            "FinTechX Desktop\nVersion 1.0.0\n\nA robust banking desktop software."
+        )
 
     def show_dashboard(self):
         self.central_widget.setCurrentWidget(self.dashboard_view)
@@ -207,14 +310,9 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage("Virtual Terminal Active")
 
     def show_analytics_dashboard(self):
-        # Refresh data when the dashboard is shown
         self.analytics_dashboard_view.refresh_dashboard()
         self.central_widget.setCurrentWidget(self.analytics_dashboard_view)
         self.statusBar().showMessage("Analytics Dashboard Active")
-
-    def show_fraud_detection(self):
-        self.central_widget.setCurrentWidget(self.fraud_detection_view)
-        self.statusBar().showMessage("Fraud Detection Active")
 
     def show_bill_payment(self):
         self.central_widget.setCurrentWidget(self.bill_payment_view)
@@ -227,6 +325,11 @@ class MainWindow(QMainWindow):
     def show_card_management(self):
         self.central_widget.setCurrentWidget(self.card_management_view)
         self.statusBar().showMessage("Card Management Active")
+
+    def show_user_management(self):
+        self.user_management_view.refresh_users_table()
+        self.central_widget.setCurrentWidget(self.user_management_view)
+        self.statusBar().showMessage("User Management Active")
 
     def closeEvent(self, event):
         logging.info("Closing application...")
