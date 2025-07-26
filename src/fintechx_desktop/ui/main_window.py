@@ -13,11 +13,11 @@ from .bill_payment_widget import BillPaymentWidget
 from .transaction_history_widget import TransactionHistoryWidget
 from .card_management_widget import CardManagementWidget
 from .user_management_widget import UserManagementWidget, LoginDialog
-
+from .merchant_management_widget import MerchantManagementWidget
 
 # Import the app modules
 from ..app.auth import AuthManager, UserRole, Permission
-
+from ..app.merchant_management import MerchantManager
 # Import the native C++ module
 try:
     from fintechx_desktop.infrastructure import fintechx_native
@@ -126,6 +126,7 @@ class MainWindow(QMainWindow):
 
         # Initialize managers
         self.auth_manager = AuthManager()
+        self.merchant_manager = MerchantManager()
 
         self.session_id = None
         self.current_user = None
@@ -163,7 +164,7 @@ class MainWindow(QMainWindow):
         self.transaction_history_view = TransactionHistoryWidget()
         self.card_management_view = CardManagementWidget()
         self.user_management_view = UserManagementWidget(self.auth_manager)
-
+        self.merchant_management_view = MerchantManagementWidget(self.merchant_manager)
 
     def add_widgets_to_stack(self):
         self.central_widget.addWidget(self.dashboard_view)
@@ -174,7 +175,7 @@ class MainWindow(QMainWindow):
         self.central_widget.addWidget(self.transaction_history_view)
         self.central_widget.addWidget(self.card_management_view)
         self.central_widget.addWidget(self.user_management_view)
-
+        self.central_widget.addWidget(self.merchant_management_view)
 
     def setup_menus(self):
         menu_bar = self.menuBar()
@@ -222,8 +223,8 @@ class MainWindow(QMainWindow):
         user_management_action = self.admin_menu.addAction("&User Management")
         user_management_action.triggered.connect(self.show_user_management)
 
-        # merchant_management_action = self.admin_menu.addAction("&Merchant Management")
-        # merchant_management_action.triggered.connect(self.show_merchant_management)
+        merchant_management_action = self.admin_menu.addAction("&Merchant Management")
+        merchant_management_action.triggered.connect(self.show_merchant_management)
         #
         # customer_management_action = self.admin_menu.addAction("&Customer Management")
         # customer_management_action.triggered.connect(self.show_customer_management)
@@ -331,6 +332,9 @@ class MainWindow(QMainWindow):
         self.central_widget.setCurrentWidget(self.user_management_view)
         self.statusBar().showMessage("User Management Active")
 
+    def show_merchant_management(self):
+        self.central_widget.setCurrentWidget(self.merchant_management_view)
+        self.statusBar().showMessage("Merchant Management Active")
     def closeEvent(self, event):
         logging.info("Closing application...")
         event.accept()
