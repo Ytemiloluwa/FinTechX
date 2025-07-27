@@ -15,6 +15,7 @@ from .card_management_widget import CardManagementWidget
 from .user_management_widget import UserManagementWidget, LoginDialog
 from .merchant_management_widget import MerchantManagementWidget
 from .customer_management_widget import CustomerManagementWidget
+from .batch_processing_widget import BatchProcessingWidget
 
 # Import the app modules
 from ..app.auth import AuthManager, UserRole, Permission
@@ -169,7 +170,7 @@ class MainWindow(QMainWindow):
         self.user_management_view = UserManagementWidget(self.auth_manager)
         self.merchant_management_view = MerchantManagementWidget(self.merchant_manager)
         self.customer_management_view = CustomerManagementWidget(self.customer_manager)
-
+        self.batch_processing_view = BatchProcessingWidget()
     def add_widgets_to_stack(self):
         self.central_widget.addWidget(self.dashboard_view)
         self.central_widget.addWidget(self.pan_tools_view)
@@ -181,6 +182,7 @@ class MainWindow(QMainWindow):
         self.central_widget.addWidget(self.user_management_view)
         self.central_widget.addWidget(self.merchant_management_view)
         self.central_widget.addWidget(self.customer_management_view)
+        self.central_widget.addWidget(self.batch_processing_view)
 
     def setup_menus(self):
         menu_bar = self.menuBar()
@@ -233,6 +235,9 @@ class MainWindow(QMainWindow):
 
         customer_management_action = self.admin_menu.addAction("&Customer Management")
         customer_management_action.triggered.connect(self.show_customer_management)
+
+        batch_processing_action = self.admin_menu.addAction("&Batch Processing")
+        batch_processing_action.triggered.connect(self.show_batch_processing)
 
         # Help menu
         help_menu = menu_bar.addMenu("&Help")
@@ -345,6 +350,19 @@ class MainWindow(QMainWindow):
         self.central_widget.setCurrentWidget(self.customer_management_view)
         self.statusBar().showMessage("Customer Management Active")
 
+    def show_batch_processing(self):
+        self.central_widget.setCurrentWidget(self.batch_processing_view)
+        self.statusBar().showMessage("Batch Processing Active")
+
     def closeEvent(self, event):
-        logging.info("Closing application...")
-        event.accept()
+        confirm = QMessageBox.question(
+            self,
+            "Confirm Exit",
+            "Are you sure you want to exit?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+
+        if confirm == QMessageBox.StandardButton.Yes:
+            event.accept()
+        else:
+            event.ignore()
